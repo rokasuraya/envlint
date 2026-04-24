@@ -69,3 +69,15 @@ func TestVarSchema_AllowEmpty(t *testing.T) {
 		t.Errorf("unexpected error when AllowEmpty=true: %v", err)
 	}
 }
+
+func TestVarSchema_ValidateEnum(t *testing.T) {
+	vs := VarSchema{Type: TypeString, Enum: []string{"debug", "info", "warn", "error"}}
+	for _, v := range []string{"debug", "info", "warn", "error"} {
+		if err := vs.Validate("LOG_LEVEL", v); err != nil {
+			t.Errorf("unexpected error for valid enum value %q: %v", v, err)
+		}
+	}
+	if err := vs.Validate("LOG_LEVEL", "trace"); err == nil {
+		t.Error("expected error for value not in enum")
+	}
+}
