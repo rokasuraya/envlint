@@ -1,0 +1,34 @@
+# Example envlint schema definition
+vars:
+  APP_ENV:
+    required: true
+    type: string
+    pattern: "^(development|staging|production)$"
+    description: Application environment
+
+  PORT:
+    required: true
+    type: int
+    description: HTTP server port
+
+  DATABASE_URL:
+    required: true
+    type: url
+    description: PostgreSQL connection URL
+
+  ADMIN_EMAIL:
+    required: false
+    type: email
+    description: Administrator contact email
+
+  DEBUG:
+    required: false
+    type: bool
+    allow_empty: true
+    description: Enable debug logging
+
+  APP_VERSION:
+    required: false
+    type: string
+    pattern: "^v\\d+\\.\\d+\\.\\d+$"
+    description: Semantic version string
