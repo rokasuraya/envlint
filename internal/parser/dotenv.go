@@ -1,3 +1,4 @@
+// Package parser reads .env files into a plain key/value map.
 package parser
 
 import (
@@ -5,72 +6,80 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/yourorg/envlint/internal/expander"
 )
 
-// Entry represents a single key-value pair parsed from a .env file.
-type Entry struct {
-	Key   string
-	Value string
-	Line  int
+// ParseOptions controls optional behaviour of ParseFile.
+type ParseOptions struct {
+	// Expand resolves ${VAR} / $VAR references after parsing.
+	Expand bool
+	// FallbackToOS allows unresolved vars to fall back to os.Getenv.
+	FallbackToOS bool
 }
 
-// ParseFile reads a .env file and returns a slice of Entries.
-// Lines beginning with '#' are treated as comments and skipped.
-// Blank lines are also skipped.
-func ParseFile(path string) ([]Entry, error) {
+// ParseFile reads the .env file at path and returns a map of key→value pairs.
+// Comments (# …) and blank lines are ignored. The export keyword is stripped.
+// If opts.Expand is true, variable interpolation is performed after parsing.
+func ParseFile(path string, opts *ParseOptions) (map[string]string, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("parser: open %q: %w", path, err)
+		return nil, fmt.Errorf("open %q: %w", path, err)
 	}
 	defer f.Close()
 
-	var entries []Entry
+	env := make(map[string]string)
 	scanner := bufio.NewScanner(f)
-	lineNum := 0
-
 	for scanner.Scan() {
-		lineNum++
-		raw := strings.TrimSpace(scanner.Text())
-
-		// Skip blank lines and comments.
-		if raw == "" || strings.HasPrefix(raw, "#") {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-
-		key, value, err := parseLine(raw)
+		k, v, err := parseLine(line)
 		if err != nil {
-			return nil, fmt.Errorf("parser: %q line %d: %w", path, lineNum, err)
+			continue // skip malformed lines
 		}
-
-		entries = append(entries, Entry{Key: key, Value: value, Line: lineNum})
+		env[k] = v
 	}
-
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("parser: scanning %q: %w", path, err)
+		return nil, fmt.Errorf("reading %q: %w", path, err)
 	}
 
-	return entries, nil
+	if opts != nil && opts.Expand {
+		ex := expander.New()
+		ex.FallbackToOS = opts.FallbackToOS
+		if err := ex.Expand(env); err != nil {
+			return nil, fmt.Errorf("expanding variables: %w", err)
+		}
+	}
+	return env, nil
 }
 
-// parseLine splits a raw line into a key and value.
+// parseLine splits a single KEY=VALUE line into its components.
 func parseLine(line string) (string, string, error) {
-	// Support optional "export " prefix.
 	line = strings.TrimPrefix(line, "export ")
-
 	idx := strings.IndexByte(line, '=')
-	if idx < 0 {
-		return "", "", fmt.Errorf("missing '=' in line %q", line)
+	if idx == -1 {
+		return "", "", fmt.Errorf("no '=' in line: %q", line)
 	}
-
 	key := strings.TrimSpace(line[:idx])
+	val := strings.TrimSpace(line[idx+1:])
 	if key == "" {
-		return "", "", fmt.Errorf("empty key in line %q", line)
+		return "", "", fmt.Errorf("empty key in line: %q", line)
 	}
+	// Strip inline comment (unquoted)
+	if !isQuoted(val) {
+		if ci := strings.Index(val, " #"); ci != -1 {
+			val = strings.TrimSpace(val[:ci])
+		}
+	}
+	val = stripQuotes(val)
+	return key, val, nil
+}
 
-	value := strings.TrimSpace(line[idx+1:])
-	value = stripQuotes(value)
-
-	return key, value, nil
+func isQuoted(s string) bool {
+	return (strings.HasPrefix(s, `"`) && strings.HasSuffix(s, `"`)) ||
+		(strings.HasPrefix(s, "'") && strings.HasSuffix(s, "'"))
 }
 
 // stripQuotes removes surrounding single or double quotes from a value.
