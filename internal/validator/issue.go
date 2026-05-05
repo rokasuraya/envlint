@@ -37,3 +37,15 @@ func HasErrors(issues []Issue) bool {
 	}
 	return false
 }
+
+// FilterBySeverity returns a new slice containing only the issues that match
+// the given severity level (e.g. "error" or "warning").
+func FilterBySeverity(issues []Issue, severity string) []Issue {
+	var filtered []Issue
+	for _, iss := range issues {
+		if iss.Severity == severity {
+			filtered = append(filtered, iss)
+		}
+	}
+	return filtered
+}
