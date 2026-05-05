@@ -39,6 +39,8 @@ func Load(data []byte) (*Schema, error) {
 		vt := VarType(v.Type)
 		if vt == "" {
 			vt = TypeString
+		} else if !vt.IsValid() {
+			return nil, fmt.Errorf("schema: var %q has unknown type %q", key, v.Type)
 		}
 		s.Vars[key] = VarSchema{
 			Required:    v.Required,
