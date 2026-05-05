@@ -9,6 +9,8 @@ vars:
   PORT:
     required: true
     type: int
+    min: 1
+    max: 65535
     description: HTTP server port
 
   DATABASE_URL:
@@ -32,3 +34,10 @@ vars:
     type: string
     pattern: "^v\\d+\\.\\d+\\.\\d+$"
     description: Semantic version string
+
+  MAX_CONNECTIONS:
+    required: false
+    type: int
+    min: 1
+    max: 1000
+    description: Maximum number of database connections
