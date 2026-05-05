@@ -28,6 +28,15 @@ func (r *Report) HasErrors() bool {
 	return false
 }
 
+// ErrorCount returns the total number of errors across all results.
+func (r *Report) ErrorCount() int {
+	count := 0
+	for _, res := range r.Results {
+		count += len(res.Errors)
+	}
+	return count
+}
+
 // Validate checks the provided env map against the given schema.
 func Validate(env map[string]string, s *schema.Schema) *Report {
 	report := &Report{}
