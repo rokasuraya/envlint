@@ -62,3 +62,16 @@ func Diff(baseline, target map[string]string) []Change {
 func HasChanges(changes []Change) bool {
 	return len(changes) > 0
 }
+
+// Filter returns only the changes that match the given kind.
+// This is useful when callers want to inspect only additions,
+// removals, or modifications independently.
+func Filter(changes []Change, kind ChangeKind) []Change {
+	var filtered []Change
+	for _, c := range changes {
+		if c.Kind == kind {
+			filtered = append(filtered, c)
+		}
+	}
+	return filtered
+}
