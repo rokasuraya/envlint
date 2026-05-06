@@ -1,0 +1,19 @@
+# Example profiles configuration for envlint.
+# Place this file at the root of your project as .envlint-profiles.yaml
+# and reference it with: envlint --profile production
+
+profiles:
+  - name: production
+    env_file: .env.production
+    schema_file: schema.yaml
+    description: Production deployment environment
+
+  - name: staging
+    env_file: .env.staging
+    schema_file: schema.yaml
+    description: Staging / pre-production environment
+
+  - name: ci
+    env_file: .env.ci
+    schema_file: schema.yaml
+    description: Continuous integration environment
